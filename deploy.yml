@@ -1,16 +1,19 @@
 ---
-
 - name: "Installation d'un conteneur apache"
   hosts: prod
   become: true
-#  vars:
-#    ansible_sudo_pass: admin
+  vars:
+    ansible_sudo_pass: admin
   pre_tasks:
-    - name: install Epel repo
+    - name: install some package
       package: 
-        name: epel-release
+        name:  '{{ item }}'
         state: present
       when: ansible_distribution == "CentOS"
+      loop: 
+        - epel-release
+        - wget
+        - git
       
     - name: download pip script
       get_url:
@@ -23,9 +26,16 @@
         name: docker-py
       
   tasks:
-    - name: Create apache a container
+    - name: copy website file template
+      template:
+        src: index.html.j2
+        dest: /home/admin/index.html
+    - name: Create a apache container
       docker_container:
         name: webapp
         image: httpd
         ports:
           - "80:80"
+        volumes: 
+          - /home/admin/index.html:/usr/local/apache2/htdocs/index.html
+            
